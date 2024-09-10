@@ -10,18 +10,35 @@ const getHalf = (side, arr) => ({
 })[side]
 
 const csvFile = "https://raw.githubusercontent.com/rikyperdana/ddilia/main/ddi_tiny.csv"
-const sentences = [
-  "I love you",
-  "But, you don't love me"
-]
+
+const getData =
+  (csv, label, cb) => tf.data.csv(
+    csv, {columnConfigs: {
+      [label]: {isLabel: true}
+    }}
+  ).map(({xs, ys}) => ({
+    xs: Object.values(xs).join(' '),
+    ys: Object.values(ys)[0]
+  })).toArray().then(cb)
+
+const embedAll = (csv, label, cb) =>
+  use.load().then(embedder => getData(
+    csv, label, rows => allDone([
+      ...rows.map(({xs}) => embedder.embed(xs)),
+      ...rows.map(({ys}) => embedder.embed(ys))
+    ]).then(result => cb(tf.data.zip({
+      xs: tf.data.array(getHalf('left', result)),
+      ys: tf.data.array(getHalf('right', result))
+    }).batch(5)))
+  ))
 
 const brain = tf.sequential({layers: [
   tf.layers.dense({
-    units: 1, activation: 'relu',
-    inputShape: [1, 512]
+    activation: 'relu', units: 128,
+    inputShape: [512]
   }),
   tf.layers.dense({
-    units: 1, activation: 'softmax'
+    activation: 'linear', units: 512
   })
 ]})
 
@@ -31,21 +48,23 @@ brain.compile({
   metrics: ['accuracy']
 })
 
-const getData = cb => tf.data.csv(csvFile).map(
-  ({text, drug1, drug2, ddi, ddi_type}) => ({
-    inputs: [text, drug1, drug2, ddi].join(''),
-    output: ddi_type
-  })
-).toArray().then(cb)
+const trainData =
+  (csv, label, model, cb) => embedAll(
+    csv, label, dataset => model.fitDataset(
+      dataset, {epochs: 1}
+    ).then(cb)
+  )
+
+const textData = "in a study of 11 hiv-infected patients receiving drug1-maintenance therapy ( 40 mg and 90 mg daily ) with 600 mg of drug2 twice daily ( twice the currently recommended dose )  oral drug0 clearance increased 22 % ( 90 % ci 6 % to 42 % )"
 
 use.load().then(
-  embedders => getData(dataset => allDone([
-    ...dataset.map(i => embedders.embed(i.inputs)),
-    ...dataset.map(i => embedders.embed(i.output)),
-  ], embededs => brain.fitDataset(
-    tf.data.zip({
-      xs: tf.data.array(getHalf('left', embededs)),
-      ys: tf.data.array(getHalf('right', embededs))
-    }), {epochs: 1}
-  ).then(clog)))
+  embedder => embedder.embed(textData).then(
+    embededText => trainData(
+      csvFile, 'ddi_type', brain,
+      done => clog(
+        brain.predict(embededText)
+        .arraySync()[0]
+      )
+    )
+  )
 )
