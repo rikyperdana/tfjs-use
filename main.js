@@ -22,6 +22,7 @@ const getData =
     ys: Object.values(ys)[0]
   })).toArray().then(cb)
 
+/*
 const embedAll = (csv, label, cb) =>
   use.load().then(embedder => getData(
     csv, label, rows => allDone([
@@ -32,10 +33,20 @@ const embedAll = (csv, label, cb) =>
       ys: tf.data.array(getHalf('right', result))
     }).batch(5)))
   ))
+*/
+
+const embedAll = (dataset, cb) =>
+  use.load().then(embedder => allDone([
+    ...dataset.map(({xs}) => embedder.embed(xs)),
+    ...dataset.map(({ys}) => embedder.embed(ys))
+  ]).then(result => cb(tf.data.zip({
+    xs: tf.data.array(getHalf('left', result)),
+    ys: tf.data.array(getHalf('right', result))
+  }).batch(1))))
 
 const brain = tf.sequential({layers: [
   tf.layers.dense({
-    activation: 'relu', units: 128,
+    activation: 'relu', units: 512,
     inputShape: [512]
   }),
   tf.layers.dense({
@@ -49,14 +60,27 @@ brain.compile({
   metrics: ['accuracy']
 })
 
-const trainData =
-  (csv, label, model, cb) => embedAll(
-    csv, label, dataset => model.fitDataset(
-      dataset, {epochs: 1}
-    ).then(cb)
-  )
+const trainModel = (embededs, model, cb) =>
+  model.fitDataset(embededs, {epochs: 1})
+  .then(done => cb(done, model))
+
+const saveModel = (model, name, cb) =>
+  model.save(`downloads://${name}`).then(cb)
 
 const textData = "in a study of 11 hiv-infected patients receiving drug1-maintenance therapy ( 40 mg and 90 mg daily ) with 600 mg of drug2 twice daily ( twice the currently recommended dose )  oral drug0 clearance increased 22 % ( 90 % ci 6 % to 42 % )"
+
+0 && getData(
+  csvFile, 'ddi_type',
+  dataset => embedAll(
+    dataset,
+    embededs => trainModel(
+      embededs, brain,
+      (done, model) => saveModel(
+        model, 'cobain', clog
+      )
+    )
+  )
+)
 
 0 && use.load().then(
   embedder => embedder.embed(textData).then(
