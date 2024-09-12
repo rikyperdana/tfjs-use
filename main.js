@@ -1,12 +1,13 @@
-import * as tf from "@tensorflow/tfjs"
-import * as use from "@tensorflow-models/universal-sentence-encoder"
+// Uncomment these if it is run through node
+// import * as tf from "@tensorflow/tfjs"
+// import * as use from "@tensorflow-models/universal-sentence-encoder"
 
 const clog = console.log
 const withAs = (obj, cb) => cb(obj)
 const allDone = (arr, cb) => Promise.all(arr).then(cb)
 const getHalf = (side, arr) => ({
   left: arr.slice(0, arr.length / 2),
-  right: arr.slice(arr.length / 2, arr.lengt)
+  right: arr.slice(arr.length / 2, arr.length)
 })[side]
 
 const csvFile = "https://raw.githubusercontent.com/rikyperdana/ddilia/main/ddi_tiny.csv"
@@ -57,7 +58,7 @@ const trainData =
 
 const textData = "in a study of 11 hiv-infected patients receiving drug1-maintenance therapy ( 40 mg and 90 mg daily ) with 600 mg of drug2 twice daily ( twice the currently recommended dose )  oral drug0 clearance increased 22 % ( 90 % ci 6 % to 42 % )"
 
-use.load().then(
+0 && use.load().then(
   embedder => embedder.embed(textData).then(
     embededText => trainData(
       csvFile, 'ddi_type', brain,
