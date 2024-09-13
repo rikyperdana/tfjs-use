@@ -22,19 +22,6 @@ const getData =
     ys: Object.values(ys)[0]
   })).toArray().then(cb)
 
-/*
-const embedAll = (csv, label, cb) =>
-  use.load().then(embedder => getData(
-    csv, label, rows => allDone([
-      ...rows.map(({xs}) => embedder.embed(xs)),
-      ...rows.map(({ys}) => embedder.embed(ys))
-    ]).then(result => cb(tf.data.zip({
-      xs: tf.data.array(getHalf('left', result)),
-      ys: tf.data.array(getHalf('right', result))
-    }).batch(5)))
-  ))
-*/
-
 const embedAll = (dataset, cb) =>
   use.load().then(embedder => allDone([
     ...dataset.map(({xs}) => embedder.embed(xs)),
@@ -69,6 +56,9 @@ const saveModel = (model, name, cb) =>
 
 const textData = "in a study of 11 hiv-infected patients receiving drug1-maintenance therapy ( 40 mg and 90 mg daily ) with 600 mg of drug2 twice daily ( twice the currently recommended dose )  oral drug0 clearance increased 22 % ( 90 % ci 6 % to 42 % )"
 
+// Change 0 to 1 to execute, and vice versa
+
+// To save the trained model in certain name
 0 && getData(
   csvFile, 'ddi_type',
   dataset => embedAll(
@@ -82,6 +72,7 @@ const textData = "in a study of 11 hiv-infected patients receiving drug1-mainten
   )
 )
 
+// To train and predict a text
 0 && use.load().then(
   embedder => embedder.embed(textData).then(
     embededText => trainData(
