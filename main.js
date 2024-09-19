@@ -64,8 +64,10 @@ trainModel = (embededs, model, cb) =>
 saveModel = (model, name, cb) =>
   model.save(`downloads://${name}`).then(cb)
 
-similarityTest = (yPred, yTrue) =>
-  tf.losses.huberLoss(yPred, yTrue).dataSync()[0]
+similTest = (algo, yPred, yTrue) => ({
+  cosine: tf.losses.cosineDistance(yPred, yTrue)
+  huber: tf.losses.huberLoss(yPred, yTrue)
+})[algo].dataSync()[0]
 
 // BAGIAN TESTING --------------------------------
 
